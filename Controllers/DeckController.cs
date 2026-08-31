@@ -18,8 +18,8 @@ public class DecksController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<DeckSummaryDto>>> ListAll()
     {
-        var response = await _db_client.From<Deck>().Get();
-        var decks = response.Models.Select(d => new DeckSummaryDto(d)).ToList();
+        var res = await _db_client.From<Deck>().Get();
+        var decks = res.Models.Select(d => new DeckSummaryDto(d)).ToList();
         return Ok(decks);
     }
 
@@ -32,19 +32,32 @@ public class DecksController : ControllerBase
     }
 
     // checar
-    [HttpGet("[id]")]
+    [HttpGet("{id}")]
     public async Task<ActionResult<Deck>> CheckDeck(int id)
     {
-        var deckResponse = await _db_client.From<Deck>().Where(d => d.Id == id).Get();
-        var deck = deckResponse.Model;
+        var res = await _db_client.From<Deck>().Where(d => d.Id == id).Get();
+        var deck = res.Model;
 
         if (deck == null)
             return NotFound(new {message = "Deck not found"});
         
-        var cardsResponse
+        return Ok(deck);
     }
-    
+
 
     // editar
+    [HttpPut("{id}")]
+    public async Task<ActionResult<Deck>> UpdateDeck(int id, Deck deck)
+    {
+        var res = await _db_client.From<Deck>().Where(d => d.Id == id).Update(deck);
+        return Ok(res.Model);
+    }
+
     // excluir
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteDeck(int id)
+    {
+        await _db_client.From<Deck>().Where(d => d.Id == id).Delete();
+        return Ok();
+    }
 }

@@ -1,17 +1,21 @@
 using System.Text;
+using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 // Supabase connection
-DotEnv.DotEnvConfig.Install(
-    DotEnv.EnvFileLoadSettings.ThrowOnMissingFile
-);
-
+Env.Load();
 var url = Environment.GetEnvironmentVariable("SUPABASE_URL");
 var key = Environment.GetEnvironmentVariable("SUPABASE_KEY");
 var options = new Supabase.SupabaseOptions
 {
     AutoConnectRealtime = true
 };
+
+if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(key))
+{
+    Console.WriteLine("Error: Couldn't load URL or Service Role Key from environment");
+    return;
+}
 
 var supabase = new Supabase.Client(url, key, options);
 await supabase.InitializeAsync();
