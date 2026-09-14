@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using SharpMinded.DTOs;
 using SharpMinded.Models;
 
 namespace SharpMinded.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class DecksController : ControllerBase
@@ -25,10 +28,24 @@ public class DecksController : ControllerBase
 
     // criar
     [HttpPost]
-    public async Task<ActionResult<Deck>> CreateDeck(Deck deck)
+    public async Task<ActionResult<DeckSummaryDto>> CreateDeck([FromBody] CreateDeckRequest request)
     {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub");
+
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { message = "Invalid user identity." });
+
+        var deck = new Deck
+        {
+            Name = request.Name,
+            Description = request.Description,
+            UserId = userId,
+            CreatedAt = DateTime.Now,
+        };
+
         await _db_client.From<Deck>().Insert(deck);
-        return Ok(deck);
+        return Ok(new DeckSummaryDto(deck));
     }
 
     // checar

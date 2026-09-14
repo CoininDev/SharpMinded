@@ -16,10 +16,10 @@ public class Deck : BaseModel
     public string? Description { get; set; }
 
     [Column("created_at")]
-    public DateTime CreatedAt { get; }
+    public DateTime CreatedAt { get; set; }
 
     [Column("user_id")]
-    public int UserId { get; }
+    public Guid UserId { get; set; }
 
     [Reference(typeof(Card), includeInQuery: false)]
     public List<Card> Cards { get; set; } = new();
