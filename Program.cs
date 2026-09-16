@@ -2,11 +2,12 @@ using System.Text;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using SharpMinded.Middlewares;
 // Supabase connection
 Env.Load();
-var url = Environment.GetEnvironmentVariable("SUPABASE_URL") 
+var url = Environment.GetEnvironmentVariable("SUPABASE_URL")
     ?? throw new InvalidOperationException("SUPABASE_URL envvar not configured");
-var key = Environment.GetEnvironmentVariable("SUPABASE_KEY") 
+var key = Environment.GetEnvironmentVariable("SUPABASE_KEY")
     ?? throw new InvalidOperationException("SUPABASE_URL envvar not configured");
 
 var options = new Supabase.SupabaseOptions { AutoConnectRealtime = true };
@@ -26,7 +27,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton(supabase);
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options => 
+    .AddJwtBearer(options =>
     {
         options.Authority = $"{url}/auth/v1";
         options.Audience = "authenticated";
@@ -38,6 +39,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 
 var app = builder.Build();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 
 app.UseHttpsRedirection();

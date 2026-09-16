@@ -30,17 +30,11 @@ public class DecksController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<DeckSummaryDto>> CreateDeck([FromBody] CreateDeckRequest request)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub");
-
-        if (!Guid.TryParse(userIdClaim, out var userId))
-            return Unauthorized(new { message = "Invalid user identity." });
-
         var deck = new Deck
         {
             Name = request.Name,
             Description = request.Description,
-            UserId = userId,
+            UserId = GetUserId(),
             CreatedAt = DateTime.Now,
         };
 
@@ -56,8 +50,8 @@ public class DecksController : ControllerBase
         var deck = res.Model;
 
         if (deck == null)
-            return NotFound(new {message = "Deck not found"});
-        
+            return NotFound(new { message = "Deck not found" });
+
         return Ok(deck);
     }
 
@@ -76,5 +70,16 @@ public class DecksController : ControllerBase
     {
         await _db_client.From<Deck>().Where(d => d.Id == id).Delete();
         return Ok();
+    }
+
+    private Guid GetUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub");
+
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            throw new UnauthorizedAccessException("User not logged in");
+
+        return userId;
     }
 }

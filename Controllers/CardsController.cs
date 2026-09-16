@@ -1,10 +1,14 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using SharpMinded.DTOs;
 using SharpMinded.Models;
-using static Supabase.Postgrest.Constants;
-using System.Reflection.Metadata.Ecma335;
+using Supabase.Postgrest;
+
 
 namespace SharpMinded.Controllers;
 
@@ -20,20 +24,15 @@ public class CardsController : ControllerBase
     }
 
     // listar
-    [HttpGet]
+    [HttpGet("{deckId}")]
     public async Task<ActionResult<IEnumerable<CardSummaryDto>>> ListAll(int deckId)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub");
+        var res = await GetAuthorizedCardQuery(deckId).Get();
 
-        if (!Guid.TryParse(userIdClaim, out var userId))
-            return Unauthorized(new { message = "Invalid user identity." });
+        var cards = res.Models != null
+            ? res.Models.Select(c => new CardSummaryDto(c)).ToList()
+            : new List<CardSummaryDto>();
 
-        var res = await _db_client.From<Card>()
-            .Filter("deck_id", Operator.Equals, deckId)
-            .Filter("user_id", Operator.Equals, userId)
-            .Get();
-        var cards = res.Models.Select(c => new CardSummaryDto(c)).ToList();
         return Ok(cards);
     }
 
@@ -41,25 +40,26 @@ public class CardsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CardSummaryDto>> CreateCard([FromBody] Card card)
     {
-        card.UserId = GetUserId().ToString();
-        await _db_client.From<Card>().Insert(card);
-        return Ok(new CardSummaryDto(card));
+        var userId = GetUserId().ToString();
+        card.UserId = userId;
+        var res = await _db_client.From<Card>().Insert(card);
+        if (res.Model == null)
+            return BadRequest(new { message = "Failed to create card." });
+        return Ok(new CardSummaryDto(res.Model));
     }
 
     // checar
     [HttpGet("{deckId}/{cardId}")]
-    public async Task<ActionResult<Deck>> CheckCard(int deckId, int cardId)
+    public async Task<ActionResult<Card>> CheckCard(int deckId, int cardId)
     {
         var userId = GetUserId();
 
-        var res = await _db_client.From<Card>()
-            .Where(c => ValidateCard(deckId, cardId, c))
-            .Get();
+        var res = await GetAuthorizedCardQuery(deckId, cardId).Get();
 
         var card = res.Model;
 
         if (card == null)
-            return NotFound(new { message = "Deck not found" });
+            return NotFound(new { message = "Card not found" });
 
         return Ok(card);
     }
@@ -67,38 +67,36 @@ public class CardsController : ControllerBase
 
     // editar
     [HttpPut("{deckId}/{cardId}")]
-    public async Task<ActionResult<Card>> UpdateDeck(int deckId, int cardId, [FromBody] Card card)
+    public async Task<ActionResult<Card>> UpdateCard(int deckId, int cardId, [FromBody] Card card)
     {
         var userId = GetUserId();
 
-        var res = await _db_client.From<Card>()
-            .Where(c => ValidateCard(deckId, cardId, c))
-            .Update(card);
+        var res = await GetAuthorizedCardQuery(deckId, cardId).Update(card);
 
         return Ok(res.Model);
     }
 
     // excluir
     [HttpDelete("{deckId}/{cardId}")]
-    public async Task<ActionResult> DeleteDeck(int deckId, int cardId)
+    public async Task<ActionResult> DeleteCard(int deckId, int cardId)
     {
-        try
-        {
-            var userId = GetUserId();
+        var userId = GetUserId();
 
-            await _db_client.From<Card>()
-                .Where(c => ValidateCard(deckId, cardId, c))
-                .Delete();
-            return Ok();
-        }
-            ?? return Unauthorized("User not logged in");
-
+        await GetAuthorizedCardQuery(deckId, cardId).Delete();
+        return Ok();
     }
-    private bool ValidateCard(int deckId, int cardId, Card c)
+    private Supabase.Postgrest.Interfaces.IPostgrestTable<Card> GetAuthorizedCardQuery(int deckId, int? cardId = null)
     {
-        return c.Id == cardId
-            && c.DeckId == deckId
-            && c.UserId == GetUserId().ToString();
+        var userId = GetUserId().ToString();
+        var query = _db_client.From<Card>()
+            .Where(c => c.DeckId == deckId && c.UserId == userId);
+
+        if (cardId.HasValue)
+        {
+            query = query.Where(c => c.Id == cardId.Value);
+        }
+
+        return query;
     }
 
     private Guid GetUserId()
@@ -107,7 +105,7 @@ public class CardsController : ControllerBase
             ?? User.FindFirstValue("sub");
 
         if (!Guid.TryParse(userIdClaim, out var userId))
-            throw new Exception("User not logged in");
+            throw new UnauthorizedAccessException("User not logged in");
 
         return userId;
     }
