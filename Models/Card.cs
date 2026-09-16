@@ -7,13 +7,20 @@ namespace SharpMinded.Models;
 public class Card : BaseModel
 {
     [PrimaryKey("id")]
-    public int Id {get; set;}
-    
-    [Column ("front")]
+    public int Id { get; set; }
+
+    [PrimaryKey("deck_id")]
+    public int DeckId { get; set; }
+
+    [Column("user_id")]
+    public string? UserId { get; set; }
+
+
+    [Column("front")]
     public string? Front { get; set; }
 
 
-    [Column ("back")]
+    [Column("back")]
     public string? Back { get; set; }
 
     [Column("created_at")]
