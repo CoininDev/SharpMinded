@@ -19,4 +19,9 @@
     <PackageReference Include="Supabase" Version="8.1.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="SharpMinded.Tests/**/*.cs" />
+    <EmbeddedResource Remove="SharpMinded.Tests/**/*" />
+    <None Remove="SharpMinded.Tests/**/*" />
+</ItemGroup>
 </Project>

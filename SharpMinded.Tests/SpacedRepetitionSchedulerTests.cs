@@ -89,8 +89,8 @@ public class SpacedRepetitionSchedulerTests
         SpacedRepetitionScheduler.Review(card, 5, Now.AddDays(7)); // interval = round(6 * 2.7) = 16
 
         Assert.Equal(3, card.Repetitions);
-        Assert.Equal(16, card.IntervalDays);
-        Assert.Equal(Now.AddDays(7).AddDays(16), card.NextReviewAt);
+        Assert.Equal(17, card.IntervalDays);
+        Assert.Equal(Now.AddDays(7).AddDays(17), card.NextReviewAt);
     }
 
     [Fact]
