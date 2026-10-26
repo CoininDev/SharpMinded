@@ -58,7 +58,7 @@ SharpMinded/
    Navegue até o endpoint do Swagger/OpenAPI (ex: `https://localhost:<porta>/swagger` ou `/openapi`) para explorar e testar os endpoints interativamente.
 
 ## 🎯 Roadmap e Próximos Passos
-- [ ] Implementar o algoritmo central de agendamento de repetição espaçada.
+- [x] Implementar o algoritmo central de agendamento de repetição espaçada.
 - [ ] Adicionar testes unitários e de integração abrangentes (xUnit/NUnit).
 - [ ] Refinar configurações do Entity Framework Core e migrations de banco de dados.
 - [ ] Implementar *Rate Limiting* e middleware avançado de tratamento de erros globais.
